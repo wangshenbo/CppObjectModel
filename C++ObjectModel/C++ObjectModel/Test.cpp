@@ -77,18 +77,19 @@ void test_base_model()
 {
 	Base b1(1000);
 	cout << "对象b1的起始内存地址：" << &b1 << endl;
-	cout << "type_info信息：" << ((int*)*(int*)(&b1) - 1) << endl;
-	RTTICompleteObjectLocator str=
-		*((RTTICompleteObjectLocator*)*((int*)*(int*)(&b1) - 1));
+	int* pVTable = (int*)*(int*)(&b1);//虚函数表地址
+	cout << "type_info信息的地址：" << (int*)pVTable[-1] << endl;// ((int*)*(int*)(&b1) - 1) << endl;
+	RTTICompleteObjectLocator& str=
+		*((RTTICompleteObjectLocator*)pVTable[-1]);
 	//abstract class name from RTTI
 	string classname(str.pTypeDescriptor->name);
 	classname = classname.substr(4,classname.find("@@")-4);
 	cout << classname <<endl;
-	cout << "虚函数表地址：\t\t\t" << (int*)(&b1) << endl;
-	cout << "虚函数表 — 第1个函数地址：\t" << (int*)*(int*)(&b1) << "\t即析构函数地址：" << (int*)*((int*)*(int*)(&b1)) << endl;
-	cout << "虚函数表 — 第2个函数地址：\t" << ((int*)*(int*)(&b1) + 1) << "\t";
-	typedef void(*Fun)(void);
-	Fun pFun = (Fun)*(((int*)*(int*)(&b1)) + 1);
+	cout << "虚函数表地址：\t\t\t" << ":" << pVTable << endl; //(int*)(&b1) << endl;//修改
+	cout << "虚函数表 — 第1个函数地址：\t" << (int*)pVTable[0] << "\t即析构函数地址：" << (int*)*((int*)*(int*)(&b1)) << endl;//修改
+	cout << "虚函数表 — 第2个函数地址：\t" << (int*)pVTable[1] << "\tBase::print函数地址" << endl << std::endl;//修改
+	typedef void(*Fun)();
+	Fun pFun = (Fun)pVTable[1];
 	pFun();
 	b1.print();
 	cout << endl;
@@ -103,27 +104,34 @@ void test_single_inherit_norewrite()
 {
 	Derived d(9999);
 	cout << "对象d的起始内存地址：" << &d << endl;
-	cout << "type_info信息：" << ((int*)*(int*)(&d) - 1) << endl;
-	RTTICompleteObjectLocator str=
-		*((RTTICompleteObjectLocator*)*((int*)*(int*)(&d) - 1));
+	int* pVTable = (int*)*(int*)(&d);//虚函数表地址
+	cout << "type_info信息的地址：" << (int*)pVTable[-1] << endl;// ((int*)*(int*)(&d) - 1) << endl;
+	RTTICompleteObjectLocator str =
+		*((RTTICompleteObjectLocator*)pVTable[-1]);//*((int*)*(int*)(&d) - 1));
 	//abstract class name from RTTI
 	string classname(str.pTypeDescriptor->name);
 	classname = classname.substr(4,classname.find("@@")-4);
 	cout << classname <<endl;
-	cout << "虚函数表地址：\t\t\t" << (int*)(&d) << endl;
-	cout << "虚函数表 — 第1个函数地址：\t" << (int*)*(int*)(&d) << "\t即析构函数地址" << endl;
-	cout << "虚函数表 — 第2个函数地址：\t" << ((int*)*(int*)(&d) + 1) << "\t";
+	cout << "虚函数表地址：\t\t\t" << pVTable << endl;// (int*)(&d) << endl;
+	cout << "虚函数表 — 第1个函数地址：\t" << (int*)pVTable[0] << "\t即析构函数地址（变）" << endl;// (int*)*(int*)(&d) << "\t即析构函数地址" << endl;相对于Base类其地址应该改变
+	cout << "虚函数表 — 第2个函数地址：\t" << (int*)pVTable[1] <<"\tBase::print函数地址（不变）"<< endl;// ((int*)*(int*)(&d) + 1) << "\t";
+	cout << "虚函数表 — 第3个函数地址：\t" << (int*)pVTable[2] << "\tDerived::derived_print函数地址（新增）" << endl;
 	typedef void(*Fun)(void);
-	Fun pFun = (Fun)*(((int*)*(int*)(&d)) + 1);
+	Fun pFun = (Fun)pVTable[1];
 	pFun();
 	d.print();
 	cout << endl;
 
-	cout << "虚函数表 — 第3个函数地址：\t" << ((int*)*(int*)(&d) + 2) << "\t";
-	pFun = (Fun)*(((int*)*(int*)(&d)) + 2);
+	pFun = (Fun)pVTable[2];
 	pFun();
 	d.derived_print();
 	cout << endl;
+
+	/*cout << "虚函数表 — 第3个函数地址：\t" << ((int*)*(int*)(&d) + 2) << "\t";
+	pFun = (Fun)*(((int*)*(int*)(&d)) + 2);
+	pFun();
+	d.derived_print();
+	cout << endl;*/
 
 	cout << "推测数据成员iBase地址：\t\t" << ((int*)(&d) +1) << "\t通过地址取得的值：" << *((int*)(&d) +1) << endl;
 	cout << "推测数据成员iDerived地址：\t" << ((int*)(&d) +2) << "\t通过地址取得的值：" << *((int*)(&d) +2) << endl;
@@ -133,17 +141,18 @@ void test_single_inherit_rewrite()
 {
 	Derived_Overrite d(111111);
 	cout << "对象d的起始内存地址：\t\t" << &d << endl;
-	cout << "虚函数表地址：\t\t\t" << (int*)(&d) << endl;
-	cout << "虚函数表 — 第1个函数地址：\t" << (int*)*(int*)(&d) << "\t即析构函数地址" << endl;
-	cout << "虚函数表 — 第2个函数地址：\t" << ((int*)*(int*)(&d) + 1) << "\t";
+	int* pVTable = (int*)*(int*)(&d);//虚函数表地址
+	cout << "虚函数表地址：\t\t\t" << pVTable << endl;// (int*)(&d) << endl;
+	cout << "虚函数表 — 第1个函数地址：\t" << (int*)pVTable[0] << "\t即析构函数地址（变）" << endl;// (int*)*(int*)(&d) << "\t即析构函数地址" << endl;
+	cout << "虚函数表 — 第2个函数地址：\t" << (int*)pVTable[1] << "\tDerivedOvrrite::print函数地址（变）" << endl; //((int*)*(int*)(&d) + 1) << "\t";
 	typedef void(*Fun)(void);
-	Fun pFun = (Fun)*(((int*)*(int*)(&d)) + 1);
+	Fun pFun = (Fun)pVTable[1];
 	pFun();
 	d.print();
 	cout << endl;
 
-	cout << "虚函数表 — 第3个函数地址：\t" << *((int*)*(int*)(&d) + 2) << "【结束】\t";
-	cout << endl;
+	//cout << "虚函数表 — 第3个函数地址：\t" << *((int*)*(int*)(&d) + 2) << "【结束】\t";
+	//cout << endl;
 
 	cout << "推测数据成员iBase地址：\t\t" << ((int*)(&d) +1) << "\t通过地址取得的值：" << *((int*)(&d) +1) << endl;
 	cout << "推测数据成员iDerived地址：\t" << ((int*)(&d) +2) << "\t通过地址取得的值：" << *((int*)(&d) +2) << endl;
@@ -153,34 +162,53 @@ void test_multip_inherit()
 {
 	Derived_Mutlip_Inherit dmi(3333);
 	cout << "对象dmi的起始内存地址：\t\t" << &dmi << endl;
-	cout << "虚函数表_vptr_Base地址：\t" << (int*)(&dmi) << endl;
-	cout << "_vptr_Base — 第1个函数地址：\t" << (int*)*(int*)(&dmi) << "\t即析构函数地址" << endl;
-	cout << "_vptr_Base — 第2个函数地址：\t" << ((int*)*(int*)(&dmi) + 1) << "\t";
+	int* pVTable1 = (int*)*((int*)(&dmi));
+	int* pVTable2 = (int*)*((int*)(&dmi) + 2);
+
+	RTTICompleteObjectLocator str =
+		*((RTTICompleteObjectLocator*)pVTable1[-1]);//*((int*)*(int*)(&d) - 1));
+	//abstract class name from RTTI
+	string classname(str.pTypeDescriptor->name);
+	classname = classname.substr(4, classname.find("@@") - 4);
+	cout << classname << endl;
+
+	cout << "虚函数表_vptr_Base地址：\t" << pVTable1 << endl;// (int*)(&dmi) << endl;
+	cout << "_vptr_Base — 第1个函数地址：\t" << (int*)pVTable1[0] << "\t即析构函数地址:~Derived（变）" << endl;// (int*)*(int*)(&dmi) << "\t即析构函数地址" << endl;
+	cout << "_vptr_Base — 第2个函数地址：\t" << (int*)pVTable1[1] << "\tDerived::print函数地址（变）" << endl;// ((int*)*(int*)(&dmi) + 1) << "\t";
+	cout << "_vptr_Base — 第3个函数地址：\t" << (int*)pVTable1[2] << "\tDerived::test_fun函数地址（新增）" << endl;
 	typedef void(*Fun)(void);
-	Fun pFun = (Fun)*(((int*)*(int*)(&dmi)) + 1);
+	Fun pFun = (Fun)pVTable1[1];
 	pFun();
+	dmi.print();
 	cout << endl;
-	cout << "_vptr_Base — 第3个函数地址：\t" << ((int*)*(int*)(&dmi) + 2) << "\t";
-	pFun = (Fun)*(((int*)*(int*)(&dmi)) + 2);
+//	cout << "_vptr_Base — 第3个函数地址：\t" << ((int*)*(int*)(&dmi) + 2) << "\t";
+	pFun = (Fun)pVTable1[2];
 	pFun();
+	dmi.test_fun();
 	cout << endl;
-	cout << "_vptr_Base — 第4个函数地址：\t" << *((int*)*(int*)(&dmi) + 3) << "【结束】\t";
-	cout << endl;
+	//cout << "_vptr_Base — 第4个函数地址：\t" << *((int*)*(int*)(&dmi) + 3) << "【结束】\t";
+	//cout << endl;
 	cout << "推测数据成员iBase地址：\t\t" << ((int*)(&dmi) +1) << "\t通过地址取得的值：" << *((int*)(&dmi) +1) << endl;
 
 
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY | FOREGROUND_GREEN); 
 	cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY | FOREGROUND_RED); 
-	cout << "虚函数表_vptr_Base1地址：\t" << ((int*)(&dmi) +2) << endl;
-	cout << "_vptr_Base1 — 第1个函数地址：\t" << (int*)*((int*)(&dmi) +2) << "\t即析构函数地址" << endl;
-	cout << "_vptr_Base1 — 第2个函数地址：\t" << ((int*)*((int*)(&dmi) +2) + 1) << "\t";
+	str =*((RTTICompleteObjectLocator*)pVTable2[-1]);//*((int*)*(int*)(&d) - 1));
+	//abstract class name from RTTI
+	string classname2(str.pTypeDescriptor->name);
+	classname2 = classname2.substr(4, classname.find("@@") - 4);
+	cout << classname2 << endl;
+	cout << "虚函数表_vptr_Base1地址：\t" << pVTable2 << endl;// ((int*)(&dmi) + 2) << endl;
+	cout << "_vptr_Base1 — 第1个函数地址：\t" << (int*)pVTable2[0] << "\t即析构函数地址:~Derived（变）" << endl;// (int*)*((int*)(&dmi) + 2) << "\t即析构函数地址" << endl;
+	cout << "_vptr_Base1 — 第2个函数地址：\t" << (int*)pVTable2[1] << "\tDerived::print函数地址（变）" << endl;// ((int*)*((int*)(&dmi) + 2) + 1) << "\t";
 	typedef void(*Fun)(void);
-	pFun = (Fun)*((int*)*((int*)(&dmi) +2) + 1);
+	pFun = (Fun)pVTable2[1];// *((int*)*((int*)(&dmi) + 2) + 1);
 	pFun();
+	dmi.print();
 	cout << endl;
-	cout << "_vptr_Base1 — 第3个函数地址：\t" << *((int*)*(int*)((int*)(&dmi) +2) + 2) << "【结束】\t";
-	cout << endl;	
+	/*cout << "_vptr_Base1 — 第3个函数地址：\t" << *((int*)*(int*)((int*)(&dmi) +2) + 2) << "【结束】\t";
+	cout << endl;*/	
 	cout << "推测数据成员iBase1地址：\t" << ((int*)(&dmi) +3) << "\t通过地址取得的值：" << *((int*)(&dmi) +3) << endl;
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY | FOREGROUND_GREEN); 
 	cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
@@ -192,22 +220,27 @@ void test_single_vitrual_inherit()
 {
 	Derived_Virtual_Inherit1 dvi1(88888);
 	cout << "对象dvi1的起始内存地址：\t\t" << &dvi1 << endl;
-	cout << "虚函数表_vptr_Derived..地址：\t\t" << (int*)(&dvi1) << endl;
-	cout << "_vptr_Derived — 第1个函数地址：\t" << (int*)*(int*)(&dvi1) << endl;
+	int* pDVTable = (int*)*(int*)(&dvi1);//Derived类虚函数表地址
+	cout << "虚函数表_vptr_Derived..地址：\t\t" << pDVTable << endl;// (int*)(&dvi1) << endl;
+	cout << "_vptr_Derived — 第1个函数地址：\t" << (int*)pDVTable[0] << "\t即Derived::inherit1_print（新增）" << endl;// (int*)*(int*)(&dvi1) << endl;
 	typedef void(*Fun)(void);
-	Fun pFun = (Fun)*((int*)*(int*)(&dvi1));
+	Fun pFun = (Fun)pDVTable[0];// *((int*)*(int*)(&dvi1));//
 	pFun();
+	dvi1.inherit1_print();
 	cout << endl;
-	cout << "_vptr_Derived — 第2个函数地址：\t" << *((int*)*(int*)(&dvi1) + 1) << "【结束】\t";
+	cout << "_vptr_Derived — 第2个函数地址：\t" << pDVTable[1] << "【结束】\t";
 	cout << endl;
 	cout << "=======================：\t" << ((int*)(&dvi1) +1) << "\t通过地址取得的值：" << (int*)*((int*)(&dvi1) +1) << "\t" <<*(int*)*((int*)(&dvi1) +1) << endl;
 	cout << "推测数据成员iDerived地址：\t" << ((int*)(&dvi1) +2) << "\t通过地址取得的值：" << *((int*)(&dvi1) +2) << endl;
 	cout << "=======================：\t" << ((int*)(&dvi1) +3) << "\t通过地址取得的值：" << *((int*)(&dvi1) +3) << endl;
-	cout << "虚函数表_vptr_Base地址：\t" << ((int*)(&dvi1) +4) << endl;
-	cout << "_vptr_Base — 第1个函数地址：\t" << (int*)*((int*)(&dvi1) +4) << "\t即析构函数地址" << endl;
-	cout << "_vptr_Base — 第2个函数地址：\t" << ((int*)*((int*)(&dvi1) +4) +1) << "\t";
-	pFun = (Fun)*((int*)*((int*)(&dvi1) +4) +1);
+
+	int* pBVTable = (int*)*((int*)(&dvi1)+4);//Derived类虚函数表地址
+	cout << "虚函数表_vptr_Base地址：\t" << pBVTable << endl;// ((int*)(&dvi1) + 4) << endl;
+	cout << "_vptr_Base — 第1个函数地址：\t" << (int*)pBVTable[0] << "\t即析构函数地址:~Derived（变）" << endl;//(int*)*((int*)(&dvi1) +4) << "\t即析构函数地址" << endl;
+	cout << "_vptr_Base — 第2个函数地址：\t" << (int*)pBVTable[1] << "\tDerived::print函数地址（变）" << endl;// ((int*)*((int*)(&dvi1) + 4) + 1) << "\t";
+	pFun = (Fun)pBVTable[1];// *((int*)*((int*)(&dvi1) + 4) + 1);
 	pFun();
+	dvi1.print();
 	cout << endl;
 	cout << "_vptr_Base — 第3个函数地址：\t" << ((int*)*((int*)(&dvi1) +4) +2) << "【结束】\t" << *((int*)*((int*)(&dvi1) +4) +2);
 	cout << endl;

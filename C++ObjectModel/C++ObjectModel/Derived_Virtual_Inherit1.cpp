@@ -15,10 +15,10 @@ Derived_Virtual_Inherit1::~Derived_Virtual_Inherit1(void)
 
 void Derived_Virtual_Inherit1::print(void) const
 {
-	cout<<"Derived_Virtual_Inherit1::print()£¬ iDerived_Virtual_Inherit1 " << iDerived_Virtual_Inherit1 << endl;
+	cout << "Derived_Virtual_Inherit1::print()£¬ iDerived_Virtual_Inherit1 " << endl;// iDerived_Virtual_Inherit1 << endl;
 }
 
 void Derived_Virtual_Inherit1::inherit1_print(void) const
 {
-	cout<<"Derived_Virtual_Inherit1::inherit1_print()£¬ iDerived_Virtual_Inherit1 " << iDerived_Virtual_Inherit1 << endl;
+	cout << "Derived_Virtual_Inherit1::inherit1_print()£¬ iDerived_Virtual_Inherit1 " << endl;// iDerived_Virtual_Inherit1 << endl;
 }

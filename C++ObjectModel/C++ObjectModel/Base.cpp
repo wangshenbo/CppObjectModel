@@ -31,5 +31,5 @@ int Base::getIBase() const
 
 void Base::print(void) const
 {
-	cout<<"Base::print()£¬ iBase " << iBase << endl;
+	cout<<"Base::print()£¬ iBase\t" << iBase << endl;
 }

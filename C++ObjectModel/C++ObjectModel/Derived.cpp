@@ -16,5 +16,5 @@ Derived::~Derived(void)
 
 void Derived::derived_print()
 {
-	cout<<"Derived::derived_print()"<<iDerived<<endl;
+	cout<<"Derived::derived_print()\t"<<iDerived<<endl;
 }
